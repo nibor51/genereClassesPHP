@@ -1,13 +1,25 @@
 <?php
+// Path: GenereClasses.php
 
-// recup parametre de connexion
-// connexion BDD
-// verif connexion ok
+require_once '_connec.php';
+// connexion database
+try {
+    $pdo = new \PDO(DSN, USER, PASS);
+} catch (\PDOException $e) {
+    echo "
+        Erreur de connexion à la base de données \n
+        Vérifiez les paramètres de connexion dans le fichier _connec.php \n
+    ";
+}
 
+//récupération du schéma de la database
+$query = "SHOW TABLES";
+$pdoStatement = $pdo->query($query);
+$tables = $pdoStatement->fetchAll(PDO::FETCH_ASSOC);
 
-//recup schema BDD
-
-// debut boucle sur chaque table
+// parcours des tables
+foreach ($tables as $table) {
+    echo $table['Tables_in_'.DBNAME]."\n";
 
     // récupération du schéma de la table
 
@@ -20,4 +32,4 @@
     //ajout des methodes
     // création fichier class
 
-// fin boucle sur chaque table
+}
