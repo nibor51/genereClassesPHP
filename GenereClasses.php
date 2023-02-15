@@ -30,9 +30,16 @@ foreach ($tables as $table) {
 
     // définition des attributs
     foreach ($columns as $column) {
-        // TODO vérification sur le type de la colone pour verifier si c'est un int ou un string
-        // $class .= "    private ".$column['Type']." $".$column['Field'].";\n";
-        $class .= "    private $".$column['Field'].";\n\n";
+        $type = $column['Type'];
+        $pos = strpos($type, '(');
+        if ($pos !== false) {
+            $type = substr($type, 0, $pos);
+        }
+        if (strpos($type, 'int') !== false) {
+            $class .= "    private int $".$column['Field'].";\n\n";
+        } else {
+            $class .= "    private string $".$column['Field'].";\n\n";
+        }
     }
 
     // définition des méthodes
