@@ -1,0 +1,7 @@
+<?php
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'name_of_your_database');
+define('DB_USER', 'name_of_your_user');
+define('DB_PASSWORD', 'password_of_your_user');
+define('DB_DSN', 'mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset=utf8');
+?>
