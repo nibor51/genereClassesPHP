@@ -22,14 +22,44 @@ foreach ($tables as $table) {
     echo $table['Tables_in_'.DBNAME]."\n";
 
     // récupération du schéma de la table
+    $query = "DESCRIBE ".$table['Tables_in_'.DBNAME];
+    $pdoStatement = $pdo->query($query);
+    $columns = $pdoStatement->fetchAll(PDO::FETCH_ASSOC);
 
-    // debut boucle sur chaque colonne d'une table
+    // génération de la classe
+    $className = ucfirst($table['Tables_in_'.DBNAME]);
+    $class = "<?php \nclass $className { \n";
 
-        // génération de la classe
-        
-    // fin boucle sur chaque colonne d'une table
+    // définition des attributs
+    foreach ($columns as $column) {
+        // TODO vérification sur le type de la colone pour verifier si c'est un int ou un string
+        // $class .= "    private ".$column['Type']." $".$column['Field'].";\n";
+        $class .= "    private $".$column['Field'].";\n";
+    }
+    // définition des méthodes
+    // actuellement get et set uniquement
+    foreach ($columns as $column) {
+        // getter
+        $class .= "    public function get".ucfirst($column['Field'])."() {\n";
+        $class .= "        return \$this->".$column['Field'].";\n";
+        $class .= "    }\n";
+        // setter
+        $class .= "    public function set".ucfirst($column['Field'])."($".$column['Field'].") {\n";
+        $class .= "        \$this->".$column['Field']." = $".$column['Field'].";\n";
+        $class .= "    }\n";
+    }
+    // fin de la class
+    $class .= "}";
+    //verification de la class
+    // echo $class;
 
-    //ajout des methodes
+    //création du dossier classes
+    if (!file_exists('classes')) {
+        mkdir('classes', 0777, true);
+    }
     // création fichier class
+    $file = fopen('classes/'.$className.'.php', 'w+');
+    fwrite($file, $class);
+    fclose($file);
 
 }
