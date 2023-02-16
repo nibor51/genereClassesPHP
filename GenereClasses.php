@@ -2,6 +2,7 @@
 // Path: GenereClasses.php
 
 require_once '_connec.php';
+require_once 'sqlToPhpType.php';
 
 // connexion database
 try {
@@ -22,34 +23,31 @@ $pdoStatement = $pdo->prepare($query);
 $pdoStatement->execute([DB_NAME]);
 $databaseSchema = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
 
+// regroupement des colonnes par table
 $tables = [];
 foreach ($databaseSchema['def'] as $table) {
     $tables[$table['TABLE_NAME']][] = $table;
 }
 
+// génération des classes
 foreach ($tables as $table => $columns) {
-    // génération de la classe
     $className = ucfirst($table);
     $class = "<?php\n\nclass $className {\n\n";
 
-    // définition des attributs
+    // génération des attributs
+    $classAttributes = [];
     foreach ($columns as $column) {
         $type = $column['DATA_TYPE'];
-        $pos = strpos($type, '(');
-        if ($pos !== false) {
-            $type = substr($type, 0, $pos);
-        }
-        if (strpos($type, 'int') !== false) {
-            $class .= "    private int $".$column['COLUMN_NAME'].";\n\n";
-        } else {
-            $class .= "    private string $".$column['COLUMN_NAME'].";\n\n";
-        }
+        $attributeName = $column['COLUMN_NAME'];
+        $attributeType = sqlToPhpType($type);
+        $classAttributes[] = "    private ".$attributeType." $".$attributeName.";";
     }
+    $class .= implode("\n\n", $classAttributes);
 
     // définition des méthodes
 
     // constructeur
-    $class .= "    public function __construct(";
+    $class .= "\n\n    public function __construct(";
     $i = 0;
     foreach ($columns as $column) {
         $class .= "$".$column['COLUMN_NAME'];
