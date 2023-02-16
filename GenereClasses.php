@@ -63,21 +63,34 @@ foreach ($tables as $table) {
     }
     $class .= "    }\n\n";
 
-    // getters
+
     foreach ($columns as $column) {
-        $class .= "    public function get".$column['Field']."() {\n";
+        // getters
+        // condition pour ajouter le type de retour
+        if (strpos($column['Type'], 'int') !== false) {
+            $class .= "    public function get".$column['Field']."(): ?int {\n";
+        } else {
+            $class .= "    public function get".$column['Field']."(): ?string\n    {\n";
+        }
         $class .= "        return \$this->".$column['Field'].";\n";
         $class .= "    }\n\n";
-    }
-
     // setters
+    // setters
+    foreach ($columns as $column) {
+        // setters
     foreach ($columns as $column) {
         // ne pas generer de setter pour l'id
         if ($column['Field'] == 'id') {
             continue;
         }
-        $class .= "    public function set".$column['Field']."($".$column['Field'].") {\n";
-        $class .= "        \$this->".$column['Field']." = $".$column['Field'].";\n";
+        // condition pour ajouter le type de retour
+        if (strpos($column['Type'], 'int') !== false) {
+            $class .= "    public function set".$column['Field']."(int $".$column['Field']."): self\n    {\n";
+        } else {
+            $class .= "    public function set".$column['Field']."(string $".$column['Field']."): self\n    {\n";
+        }
+        $class .= "        \$this->".$column['Field']." = $".$column['Field'].";\n\n";
+        $class .= "        return \$this;\n";
         $class .= "    }\n\n";
     }
 
