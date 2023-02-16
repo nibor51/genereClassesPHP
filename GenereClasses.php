@@ -20,9 +20,14 @@ try {
 $query = "SELECT * FROM information_schema.columns WHERE table_schema = ?";
 $pdoStatement = $pdo->prepare($query);
 $pdoStatement->execute([DB_NAME]);
-$columnsByTable = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
+$databaseSchema = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
 
-foreach ($columnsByTable as $table => $columns) {
+$tables = [];
+foreach ($databaseSchema['def'] as $table) {
+    $tables[$table['TABLE_NAME']][] = $table;
+}
+
+foreach ($tables as $table => $columns) {
     // génération de la classe
     $className = ucfirst($table);
     $class = "<?php\n\nclass $className {\n\n";
