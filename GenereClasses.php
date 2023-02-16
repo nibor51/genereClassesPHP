@@ -19,29 +19,22 @@ $pdoStatement = $pdo->prepare($query);
 $pdoStatement->execute([DB_NAME]);
 $columnsByTable = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
 
-foreach ($tables as $table) {
-    // mise en variable de la table
-    $table = $table['Tables_in_'.DB_NAME];
-    // récupération du schéma de la table
-    $query = "DESCRIBE ".$table;
-    $pdoStatement = $pdo->query($query);
-    $columns = $pdoStatement->fetchAll(PDO::FETCH_ASSOC);
-
+foreach ($columnsByTable as $table => $columns) {
     // génération de la classe
     $className = ucfirst($table);
     $class = "<?php\n\nclass $className {\n\n";
 
     // définition des attributs
     foreach ($columns as $column) {
-        $type = $column['Type'];
+        $type = $column['DATA_TYPE'];
         $pos = strpos($type, '(');
         if ($pos !== false) {
             $type = substr($type, 0, $pos);
         }
         if (strpos($type, 'int') !== false) {
-            $class .= "    private int $".$column['Field'].";\n\n";
+            $class .= "    private int $".$column['COLUMN_NAME'].";\n\n";
         } else {
-            $class .= "    private string $".$column['Field'].";\n\n";
+            $class .= "    private string $".$column['COLUMN_NAME'].";\n\n";
         }
     }
 
@@ -51,7 +44,7 @@ foreach ($tables as $table) {
     $class .= "    public function __construct(";
     $i = 0;
     foreach ($columns as $column) {
-        $class .= "$".$column['Field'];
+        $class .= "$".$column['COLUMN_NAME'];
         if ($i < count($columns) - 1) {
             $class .= ", ";
         }
@@ -60,7 +53,7 @@ foreach ($tables as $table) {
     $class .= ") {\n";
 
     foreach ($columns as $column) {
-        $class .= "        \$this->".$column['Field']." = $".$column['Field'].";\n";
+        $class .= "        \$this->".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n";
     }
     $class .= "    }\n\n";
 
@@ -68,25 +61,25 @@ foreach ($tables as $table) {
     foreach ($columns as $column) {
         // getters
         // condition pour ajouter le type de retour
-        if (strpos($column['Type'], 'int') !== false) {
-            $class .= "    public function get".$column['Field']."(): ?int {\n";
+        if (strpos($column['DATA_TYPE'], 'int') !== false) {
+            $class .= "    public function get".$column['COLUMN_NAME']."(): ?int {\n";
         } else {
-            $class .= "    public function get".$column['Field']."(): ?string\n    {\n";
+            $class .= "    public function get".$column['COLUMN_NAME']."(): ?string\n    {\n";
         }
-        $class .= "        return \$this->".$column['Field'].";\n";
+        $class .= "        return \$this->".$column['COLUMN_NAME'].";\n";
         $class .= "    }\n\n";
         // setters
         // ne pas generer de setter pour l'id
-        if ($column['Field'] == 'id') {
+        if ($column['COLUMN_NAME'] == 'id') {
             continue;
         }
         // condition pour ajouter le type de retour
-        if (strpos($column['Type'], 'int') !== false) {
-            $class .= "    public function set".$column['Field']."(int $".$column['Field']."): self\n    {\n";
+        if (strpos($column['DATA_TYPE'], 'int') !== false) {
+            $class .= "    public function set".$column['COLUMN_NAME']."(int $".$column['COLUMN_NAME']."): self\n    {\n";
         } else {
-            $class .= "    public function set".$column['Field']."(string $".$column['Field']."): self\n    {\n";
+            $class .= "    public function set".$column['COLUMN_NAME']."(string $".$column['COLUMN_NAME']."): self\n    {\n";
         }
-        $class .= "        \$this->".$column['Field']." = $".$column['Field'].";\n\n";
+        $class .= "        \$this->".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n\n";
         $class .= "        return \$this;\n";
         $class .= "    }\n\n";
     }
@@ -111,7 +104,7 @@ foreach ($tables as $table) {
     $class .= "    public static function add(\$pdo, ";
     $i = 0;
     foreach ($columns as $column) {
-        $class .= "$".$column['Field'];
+        $class .= "$".$column['COLUMN_NAME'];
         if ($i < count($columns) - 1) {
             $class .= ", ";
         }
@@ -121,7 +114,7 @@ foreach ($tables as $table) {
     $class .= "        \$query = \"INSERT INTO ".$table." VALUES (";
     $i = 0;
     foreach ($columns as $column) {
-        $class .= "'$".$column['Field']."'";
+        $class .= "'$".$column['COLUMN_NAME']."'";
         if ($i < count($columns) - 1) {
             $class .= ", ";
         }
@@ -144,10 +137,10 @@ foreach ($tables as $table) {
     $i = 0;
     foreach ($columns as $column) {
         // ne pas duppliquer l'id
-        if ($column['Field'] == 'id') {
+        if ($column['COLUMN_NAME'] == 'id') {
             continue;
         }
-        $class .= "$".$column['Field'];
+        $class .= "$".$column['COLUMN_NAME'];
         if ($i < count($columns) - 1) {
             $class .= ", ";
         }
@@ -157,7 +150,7 @@ foreach ($tables as $table) {
     $class .= "        \$query = \"UPDATE ".$table." SET ";
     $i = 0;
     foreach ($columns as $column) {
-        $class .= $column['Field']." = '$".$column['Field']."'";
+        $class .= $column['COLUMN_NAME']." = '$".$column['COLUMN_NAME']."'";
         if ($i < count($columns) - 1) {
             $class .= ", ";
         }
@@ -173,7 +166,7 @@ foreach ($tables as $table) {
     $class .= "        \$query = \"SELECT * FROM ".$table." WHERE \";\n";
     $i = 0;
     foreach ($columns as $column) {
-        $class .= "        \$query .= \"".$column['Field']." LIKE '%\$search%'\";\n";
+        $class .= "        \$query .= \"".$column['COLUMN_NAME']." LIKE '%\$search%'\";\n";
         if ($i < count($columns) - 1) {
             $class .= "        \$query .= \" OR \";\n";
         }
