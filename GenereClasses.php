@@ -14,9 +14,10 @@ try {
 }
 
 //récupération du schéma de la database
-$query = "SHOW TABLES";
-$pdoStatement = $pdo->query($query);
-$tables = $pdoStatement->fetchAll(PDO::FETCH_ASSOC);
+$query = "SELECT * FROM information_schema.columns WHERE table_schema = ?";
+$pdoStatement = $pdo->prepare($query);
+$pdoStatement->execute([DB_NAME]);
+$columnsByTable = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
 
 foreach ($tables as $table) {
     // mise en variable de la table
