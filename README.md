@@ -18,3 +18,15 @@ Pour utiliser ce générateur de classes, vous devez :
  ## Avertissement
 
 Ce script est fourni tel quel, sans aucune garantie. Il est possible qu'il contienne des bugs, ou qu'il ne fonctionne pas avec votre base de données. Il est donc fortement conseillé de vérifier le code généré avant de l'utiliser.
+
+## Licence
+
+Ce script est sous licence MIT. Vous pouvez donc l'utiliser comme bon vous semble, mais à vos risques et périls.
+
+## TODO
+
+- [ ] Ajouter un système de gestion des erreurs PHP sur la génération des classes
+- [ ] Générer les méthodes de validation des données avant insertion dans la base de données (avec gestion des erreurs)
+- [ ] Générer les méthodes de relations entre les tables
+- [ ] Générer les méthodes de conversion des données (par exemple, pour convertir une date au format `Y-m-d` en objet `DateTime`)
+- [ ] Création d'un script permettant de générer les classes depuis la console (avec gestion des erreurs)
