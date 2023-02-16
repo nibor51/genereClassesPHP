@@ -19,13 +19,15 @@ $pdoStatement = $pdo->query($query);
 $tables = $pdoStatement->fetchAll(PDO::FETCH_ASSOC);
 
 foreach ($tables as $table) {
+    // mise en variable de la table
+    $table = $table['Tables_in_'.DB_NAME];
     // récupération du schéma de la table
-    $query = "DESCRIBE ".$table['Tables_in_'.DB_NAME];
+    $query = "DESCRIBE ".$table;
     $pdoStatement = $pdo->query($query);
     $columns = $pdoStatement->fetchAll(PDO::FETCH_ASSOC);
 
     // génération de la classe
-    $className = ucfirst($table['Tables_in_'.DB_NAME]);
+    $className = ucfirst($table);
     $class = "<?php\n\nclass $className {\n\n";
 
     // définition des attributs
@@ -81,17 +83,17 @@ foreach ($tables as $table) {
 
     // méthode select
     $class .= "    public static function select(\$pdo, \$id) {\n";
-    $class .= "        \$query = \"SELECT * FROM ".$table['Tables_in_'.DB_NAME]." WHERE id = '\$id'\";\n";
+    $class .= "        \$query = \"SELECT * FROM ".$table." WHERE id = '\$id'\";\n";
     $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        \$result = \$pdoStatement->fetchObject('".ucfirst($table['Tables_in_'.DB_NAME])."');\n";
+    $class .= "        \$result = \$pdoStatement->fetchObject('".ucfirst($table)."');\n";
     $class .= "        return \$result;\n";
     $class .= "    }\n\n";
     
     // méthode selectAll
     $class .= "    public static function selectAll(\$pdo) {\n";
-    $class .= "        \$query = \"SELECT * FROM ".$table['Tables_in_'.DB_NAME]."\";\n";
+    $class .= "        \$query = \"SELECT * FROM ".$table."\";\n";
     $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table['Tables_in_'.DB_NAME])."');\n";
+    $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
     $class .= "        return \$results;\n";
     $class .= "    }\n\n";
 
@@ -106,7 +108,7 @@ foreach ($tables as $table) {
         $i++;
     }
     $class .= ") {\n";
-    $class .= "        \$query = \"INSERT INTO ".$table['Tables_in_'.DB_NAME]." VALUES (";
+    $class .= "        \$query = \"INSERT INTO ".$table." VALUES (";
     $i = 0;
     foreach ($columns as $column) {
         $class .= "'$".$column['Field']."'";
@@ -122,7 +124,7 @@ foreach ($tables as $table) {
     
     // méthode delete
     $class .= "    public static function delete(\$pdo, \$id) {\n";
-    $class .= "        \$query = \"DELETE FROM ".$table['Tables_in_'.DB_NAME]." WHERE id = '\$id'\";\n";
+    $class .= "        \$query = \"DELETE FROM ".$table." WHERE id = '\$id'\";\n";
     $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
     $class .= "        return \$pdoStatement;\n";
     $class .= "    }\n\n";
@@ -142,7 +144,7 @@ foreach ($tables as $table) {
         $i++;
     }
     $class .= ") {\n";
-    $class .= "        \$query = \"UPDATE ".$table['Tables_in_'.DB_NAME]." SET ";
+    $class .= "        \$query = \"UPDATE ".$table." SET ";
     $i = 0;
     foreach ($columns as $column) {
         $class .= $column['Field']." = '$".$column['Field']."'";
@@ -158,7 +160,7 @@ foreach ($tables as $table) {
 
     // méthode search
     $class .= "    public static function search(\$pdo, \$search) {\n";
-    $class .= "        \$query = \"SELECT * FROM ".$table['Tables_in_'.DB_NAME]." WHERE \";\n";
+    $class .= "        \$query = \"SELECT * FROM ".$table." WHERE \";\n";
     $i = 0;
     foreach ($columns as $column) {
         $class .= "        \$query .= \"".$column['Field']." LIKE '%\$search%'\";\n";
@@ -168,7 +170,7 @@ foreach ($tables as $table) {
         $i++;
     }
     $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table['Tables_in_'.DB_NAME])."');\n";
+    $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
     $class .= "        return \$results;\n";
     $class .= "    }\n\n";
     
