@@ -74,11 +74,7 @@ foreach ($tables as $table) {
         }
         $class .= "        return \$this->".$column['Field'].";\n";
         $class .= "    }\n\n";
-    // setters
-    // setters
-    foreach ($columns as $column) {
         // setters
-    foreach ($columns as $column) {
         // ne pas generer de setter pour l'id
         if ($column['Field'] == 'id') {
             continue;
