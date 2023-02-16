@@ -30,3 +30,4 @@ Ce script est sous licence MIT. Vous pouvez donc l'utiliser comme bon vous sembl
 - [ ] Générer les méthodes de relations entre les tables
 - [ ] Générer les méthodes de conversion des données (par exemple, pour convertir une date au format `Y-m-d` en objet `DateTime`)
 - [ ] Création d'un script permettant de générer les classes depuis la console (avec gestion des erreurs)
+- [ ] convertir le script PHP en classe PHP
