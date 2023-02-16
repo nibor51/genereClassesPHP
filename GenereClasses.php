@@ -6,11 +6,14 @@ require_once '_connec.php';
 // connexion database
 try {
     $pdo = new \PDO(DB_DSN, DB_USER, DB_PASSWORD);
+    $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 } catch (\PDOException $e) {
     echo "
         Erreur de connexion à la base de données \n
+        Message d'erreur : ".$e->getMessage()." \n
         Vérifiez les paramètres de connexion dans le fichier _connec.php \n
     ";
+    exit();
 }
 
 //récupération du schéma de la database
