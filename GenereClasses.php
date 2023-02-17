@@ -1,200 +1,232 @@
 <?php
-// Path: GenereClasses.php
+class GenereClasses {
 
-require_once '_connec.php';
-require_once 'sqlToPhpType.php';
+    private $db;
 
-// connexion database
-try {
-    $pdo = new \PDO(DB_DSN, DB_USER, DB_PASSWORD);
-    $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-} catch (\PDOException $e) {
-    echo "
-        Erreur de connexion à la base de données \n
-        Message d'erreur : ".$e->getMessage()." \n
-        Vérifiez les paramètres de connexion dans le fichier _connec.php \n
-    ";
-    exit();
-}
+    private $host;
 
-//récupération du schéma de la database
-$query = "SELECT * FROM information_schema.columns WHERE table_schema = ?";
-$pdoStatement = $pdo->prepare($query);
-$pdoStatement->execute([DB_NAME]);
-$databaseSchema = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
+    private $user;
 
-// regroupement des colonnes par table
-$tables = [];
-foreach ($databaseSchema['def'] as $table) {
-    $tables[$table['TABLE_NAME']][] = $table;
-}
+    private $password;
 
-// génération des classes
-foreach ($tables as $table => $columns) {
-    $className = ucfirst($table);
-    $class = "<?php\n\nclass $className {\n\n";
-
-    // génération des attributs
-    $classAttributes = [];
-    foreach ($columns as $column) {
-        $type = $column['DATA_TYPE'];
-        $attributeName = $column['COLUMN_NAME'];
-        $attributeType = sqlToPhpType($type);
-        $classAttributes[] = "    private ".$attributeType." $".$attributeName.";";
-    }
-    $class .= implode("\n\n", $classAttributes);
-
-    // définition des méthodes
-
-    // constructeur
-    $class .= "\n\n    public function __construct(";
-    $i = 0;
-    foreach ($columns as $column) {
-        $class .= "$".$column['COLUMN_NAME'];
-        if ($i < count($columns) - 1) {
-            $class .= ", ";
-        }
-        $i++;
-    }
-    $class .= ") {\n";
-
-    foreach ($columns as $column) {
-        $class .= "        \$this->".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n";
-    }
-    $class .= "    }\n\n";
-
-
-    foreach ($columns as $column) {
-        // getters
-        // condition pour ajouter le type de retour
-        if (strpos($column['DATA_TYPE'], 'int') !== false) {
-            $class .= "    public function get".$column['COLUMN_NAME']."(): ?int {\n";
-        } else {
-            $class .= "    public function get".$column['COLUMN_NAME']."(): ?string\n    {\n";
-        }
-        $class .= "        return \$this->".$column['COLUMN_NAME'].";\n";
-        $class .= "    }\n\n";
-        // setters
-        // ne pas generer de setter pour l'id
-        if ($column['COLUMN_NAME'] == 'id') {
-            continue;
-        }
-        // condition pour ajouter le type de retour
-        if (strpos($column['DATA_TYPE'], 'int') !== false) {
-            $class .= "    public function set".$column['COLUMN_NAME']."(int $".$column['COLUMN_NAME']."): self\n    {\n";
-        } else {
-            $class .= "    public function set".$column['COLUMN_NAME']."(string $".$column['COLUMN_NAME']."): self\n    {\n";
-        }
-        $class .= "        \$this->".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n\n";
-        $class .= "        return \$this;\n";
-        $class .= "    }\n\n";
+    public function __construct($db, $host, $user, $password) {
+        $this->db = $db;
+        $this->host = $host;
+        $this->user = $user;
+        $this->password = $password;
     }
 
-    // méthode select
-    $class .= "    public static function select(\$pdo, \$id) {\n";
-    $class .= "        \$query = \"SELECT * FROM ".$table." WHERE id = '\$id'\";\n";
-    $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        \$result = \$pdoStatement->fetchObject('".ucfirst($table)."');\n";
-    $class .= "        return \$result;\n";
-    $class .= "    }\n\n";
-    
-    // méthode selectAll
-    $class .= "    public static function selectAll(\$pdo) {\n";
-    $class .= "        \$query = \"SELECT * FROM ".$table."\";\n";
-    $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
-    $class .= "        return \$results;\n";
-    $class .= "    }\n\n";
-
-    // méthode add
-    $class .= "    public static function add(\$pdo, ";
-    $i = 0;
-    foreach ($columns as $column) {
-        $class .= "$".$column['COLUMN_NAME'];
-        if ($i < count($columns) - 1) {
-            $class .= ", ";
+    public function generateClasses() {
+        //connection to database
+        try {
+            $pdo = new \PDO("mysql:host=$this->host;dbname=$this->db;charset=utf8", $this->user, $this->password);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            echo "
+                Erreur de connexion à la base de données \n
+                Message d'erreur : ".$e->getMessage()." \n
+                Vérifiez les paramètres de connexion dans le fichier _connec.php \n
+            ";
+            exit();
         }
-        $i++;
-    }
-    $class .= ") {\n";
-    $class .= "        \$query = \"INSERT INTO ".$table." VALUES (";
-    $i = 0;
-    foreach ($columns as $column) {
-        $class .= "'$".$column['COLUMN_NAME']."'";
-        if ($i < count($columns) - 1) {
-            $class .= ", ";
+
+        //get database schema
+        $query = "SELECT * FROM information_schema.columns WHERE table_schema = ?";
+        $pdoStatement = $pdo->prepare($query);
+        $pdoStatement->execute([$this->db]);
+        $databaseSchema = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
+
+        //group columns by table
+        $tables = [];
+        foreach ($databaseSchema['def'] as $table) {
+            $tables[$table['TABLE_NAME']][] = $table;
         }
-        $i++;
-    }
-    $class .= ")\";\n";
-    $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        return \$pdoStatement;\n";
-    $class .= "    }\n\n";
-    
-    // méthode delete
-    $class .= "    public static function delete(\$pdo, \$id) {\n";
-    $class .= "        \$query = \"DELETE FROM ".$table." WHERE id = '\$id'\";\n";
-    $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        return \$pdoStatement;\n";
-    $class .= "    }\n\n";
 
-    // méthode update
-    $class .= "    public static function update(\$pdo, \$id, ";
-    $i = 0;
-    foreach ($columns as $column) {
-        // ne pas duppliquer l'id
-        if ($column['COLUMN_NAME'] == 'id') {
-            continue;
+        //generate classes
+        foreach ($tables as $table => $columns) {
+            $className = ucfirst($table);
+            $class = "<?php\n\nclass $className {\n\n";
+
+            //generate attributes
+            $classAttributes = [];
+            foreach ($columns as $column) {
+                $type = $column['DATA_TYPE'];
+                $attributeName = $column['COLUMN_NAME'];
+                $attributeType = $this->sqlToPhpType($type);
+                $classAttributes[] = "    private ".$attributeType." $".$attributeName.";";
+            }
+            $class .= implode("\n\n", $classAttributes);
+
+            //define methods
+
+            //constructor
+            $class .= "\n\n    public function __construct(";
+            $i = 0;
+            foreach ($columns as $column) {
+                $class .= "$".$column['COLUMN_NAME'];
+                if ($i < count($columns) - 1) {
+                    $class .= ", ";
+                }
+                $i++;
+            }
+            $class .= ") {\n";
+
+            foreach ($columns as $column) {
+                $class .= "        \$this-> ".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n";
+            }
+            $class .= "    }\n\n";
+
+            foreach ($columns as $column) {
+                //getters
+                //condition to add return type
+                if (strpos($column['DATA_TYPE'], 'int') !== false) {
+                    $class .= "    public function get".$column['COLUMN_NAME']."(): ?int {\n";
+                } else {
+                    $class .= "    public function get".$column['COLUMN_NAME']."(): ?string\n    {\n";
+                }
+                $class .= "        return \$this->".$column['COLUMN_NAME'].";\n";
+                $class .= "    }\n\n";
+
+                //setters
+                //condition to add parameter type
+                if (strpos($column['DATA_TYPE'], 'int') !== false) {
+                    $class .= "    public function set".$column['COLUMN_NAME']."(int $".$column['COLUMN_NAME'].") {\n";
+                } else {
+                    $class .= "    public function set".$column['COLUMN_NAME']."(string $".$column['COLUMN_NAME'].") {\n";
+                }
+                $class .= "        \$this->".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n";
+                $class .= "    }\n\n";
+            }
+
+            // méthode select
+            $class .= "    public static function select(\$pdo, \$id) {\n";
+            $class .= "        \$query = \"SELECT * FROM ".$table." WHERE id = '\$id'\";\n";
+            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
+            $class .= "        \$result = \$pdoStatement->fetchObject('".ucfirst($table)."');\n";
+            $class .= "        return \$result;\n";
+            $class .= "    }\n\n";
+            
+            // méthode selectAll
+            $class .= "    public static function selectAll(\$pdo) {\n";
+            $class .= "        \$query = \"SELECT * FROM ".$table."\";\n";
+            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
+            $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
+            $class .= "        return \$results;\n";
+            $class .= "    }\n\n";
+        
+            // méthode add
+            $class .= "    public static function add(\$pdo, ";
+            $i = 0;
+            foreach ($columns as $column) {
+                $class .= "$".$column['COLUMN_NAME'];
+                if ($i < count($columns) - 1) {
+                    $class .= ", ";
+                }
+                $i++;
+            }
+            $class .= ") {\n";
+            $class .= "        \$query = \"INSERT INTO ".$table." VALUES (";
+            $i = 0;
+            foreach ($columns as $column) {
+                $class .= "'$".$column['COLUMN_NAME']."'";
+                if ($i < count($columns) - 1) {
+                    $class .= ", ";
+                }
+                $i++;
+            }
+            $class .= ")\";\n";
+            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
+            $class .= "        return \$pdoStatement;\n";
+            $class .= "    }\n\n";
+            
+            // méthode delete
+            $class .= "    public static function delete(\$pdo, \$id) {\n";
+            $class .= "        \$query = \"DELETE FROM ".$table." WHERE id = '\$id'\";\n";
+            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
+            $class .= "        return \$pdoStatement;\n";
+            $class .= "    }\n\n";
+        
+            // méthode update
+            $class .= "    public static function update(\$pdo, \$id, ";
+            $i = 0;
+            foreach ($columns as $column) {
+                // ne pas duppliquer l'id
+                if ($column['COLUMN_NAME'] == 'id') {
+                    continue;
+                }
+                $class .= "$".$column['COLUMN_NAME'];
+                if ($i < count($columns) - 1) {
+                    $class .= ", ";
+                }
+                $i++;
+            }
+            $class .= ") {\n";
+            $class .= "        \$query = \"UPDATE ".$table." SET ";
+            $i = 0;
+            foreach ($columns as $column) {
+                $class .= $column['COLUMN_NAME']." = '$".$column['COLUMN_NAME']."'";
+                if ($i < count($columns) - 1) {
+                    $class .= ", ";
+                }
+                $i++;
+            }
+            $class .= " WHERE id = '\$id'\";\n";
+            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
+            $class .= "        return \$pdoStatement;\n";
+            $class .= "    }\n\n";
+        
+            // méthode search
+            $class .= "    public static function search(\$pdo, \$search) {\n";
+            $class .= "        \$query = \"SELECT * FROM ".$table." WHERE \";\n";
+            $i = 0;
+            foreach ($columns as $column) {
+                $class .= "        \$query .= \"".$column['COLUMN_NAME']." LIKE '%\$search%'\";\n";
+                if ($i < count($columns) - 1) {
+                    $class .= "        \$query .= \" OR \";\n";
+                }
+                $i++;
+            }
+            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
+            $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
+            $class .= "        return \$results;\n";
+            $class .= "    }\n\n";
+        
+            $class .= "}\n";
+
+            //create file
+            $file = fopen($className.".php", "w");
+            fwrite($file, $class);
+            fclose($file);
         }
-        $class .= "$".$column['COLUMN_NAME'];
-        if ($i < count($columns) - 1) {
-            $class .= ", ";
+    }
+
+    private function sqlToPhpType(string $type) : string
+    {
+        $typeMap = array(
+            'TINYINT' => 'int',
+            'SMALLINT' => 'int',
+            'MEDIUMINT' => 'int',
+            'INT' => 'int',
+            'BIGINT' => 'int',
+            'FLOAT' => 'float',
+            'DOUBLE' => 'float',
+            'DECIMAL' => 'float',
+            'DATE' => 'string',
+            'TIME' => 'string',
+            'DATETIME' => 'string',
+            'TIMESTAMP' => 'int',
+            'YEAR' => 'int',
+            'CHAR' => 'string',
+            'VARCHAR' => 'string',
+            'TEXT' => 'string',
+            'BLOB' => 'string',
+            'ENUM' => 'string',
+            'SET' => 'string'
+          );
+        $pos = strpos($type, '(');
+        if ($pos !== false) {
+          $type = substr($type, 0, $pos);
         }
-        $i++;
+        return isset($typeMap[$type]) ? $typeMap[$type] : 'string';	
     }
-    $class .= ") {\n";
-    $class .= "        \$query = \"UPDATE ".$table." SET ";
-    $i = 0;
-    foreach ($columns as $column) {
-        $class .= $column['COLUMN_NAME']." = '$".$column['COLUMN_NAME']."'";
-        if ($i < count($columns) - 1) {
-            $class .= ", ";
-        }
-        $i++;
-    }
-    $class .= " WHERE id = '\$id'\";\n";
-    $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        return \$pdoStatement;\n";
-    $class .= "    }\n\n";
-
-    // méthode search
-    $class .= "    public static function search(\$pdo, \$search) {\n";
-    $class .= "        \$query = \"SELECT * FROM ".$table." WHERE \";\n";
-    $i = 0;
-    foreach ($columns as $column) {
-        $class .= "        \$query .= \"".$column['COLUMN_NAME']." LIKE '%\$search%'\";\n";
-        if ($i < count($columns) - 1) {
-            $class .= "        \$query .= \" OR \";\n";
-        }
-        $i++;
-    }
-    $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-    $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
-    $class .= "        return \$results;\n";
-    $class .= "    }\n\n";
-    
-
-    // fin de la class
-    $class .= "}";
-
-    //création du dossier classes
-    if (!file_exists('classes')) {
-        mkdir('classes');
-    }
-
-    // création des fichiers class
-    $file = fopen('classes/'.$className.'.php', 'w+');
-    fwrite($file, $class);
-    fclose($file);
-
 }
