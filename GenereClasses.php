@@ -191,10 +191,15 @@ class GenereClasses {
             $class .= "        return \$results;\n";
             $class .= "    }\n\n";
         
-            $class .= "}\n";
+            $class .= "}";
+
+            //create directory if not exists
+            if (!file_exists('classes')) {
+                mkdir('classes');
+            }
 
             //create file
-            $file = fopen($className.".php", "w");
+            $file = fopen('classes/'.$className.'.php', 'w+');
             fwrite($file, $class);
             fclose($file);
         }
