@@ -25,7 +25,6 @@ class GenereClasses {
             echo "
                 Erreur de connexion à la base de données \n
                 Message d'erreur : ".$e->getMessage()." \n
-                Vérifiez les paramètres de connexion dans le fichier _connec.php \n
             ";
             exit();
         }
