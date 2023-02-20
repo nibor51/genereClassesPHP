@@ -218,22 +218,6 @@ class GenereClasses
                 $class .= "        \$this->".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n";
                 $class .= "    }\n\n";
             }
-
-            // méthode select
-            $class .= "    public static function select(\$pdo, \$id) {\n";
-            $class .= "        \$query = \"SELECT * FROM ".$table." WHERE id = '\$id'\";\n";
-            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-            $class .= "        \$result = \$pdoStatement->fetchObject('".ucfirst($table)."');\n";
-            $class .= "        return \$result;\n";
-            $class .= "    }\n\n";
-            
-            // méthode selectAll
-            $class .= "    public static function selectAll(\$pdo) {\n";
-            $class .= "        \$query = \"SELECT * FROM ".$table."\";\n";
-            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-            $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
-            $class .= "        return \$results;\n";
-            $class .= "    }\n\n";
         
             // méthode add
             $class .= "    public static function add(\$pdo, ";
@@ -256,13 +240,6 @@ class GenereClasses
                 $i++;
             }
             $class .= ")\";\n";
-            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-            $class .= "        return \$pdoStatement;\n";
-            $class .= "    }\n\n";
-            
-            // méthode delete
-            $class .= "    public static function delete(\$pdo, \$id) {\n";
-            $class .= "        \$query = \"DELETE FROM ".$table." WHERE id = '\$id'\";\n";
             $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
             $class .= "        return \$pdoStatement;\n";
             $class .= "    }\n\n";
@@ -314,13 +291,8 @@ class GenereClasses
         
             $class .= "}";
 
-            //create directory if not exists
-            if (!file_exists('classes')) {
-                mkdir('classes');
-            }
-
             //create file
-            $file = fopen('classes/'.$className.'.php', 'w+');
+            $file = fopen('src/Model/'.$className.'.php', 'w+');
             fwrite($file, $class);
             fclose($file);
         }
