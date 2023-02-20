@@ -1,5 +1,10 @@
 <?php
-class GenereClasses {
+
+use PDO;
+use PDOException;
+
+class GenereClasses
+{
 
     private $db;
 
@@ -14,6 +19,14 @@ class GenereClasses {
         $this->host = $host;
         $this->user = $user;
         $this->password = $password;
+    }
+
+    private function initialGeneration() {
+        // TODO : generate AbstractManager.php and connection.php
+    }
+
+    private function connectDatabase() {
+        // TODO : connect to database
     }
 
     public function generateClasses() {
@@ -49,9 +62,8 @@ class GenereClasses {
             //generate attributes
             $classAttributes = [];
             foreach ($columns as $column) {
-                $type = $column['DATA_TYPE'];
                 $attributeName = $column['COLUMN_NAME'];
-                $attributeType = $this->sqlToPhpType($type);
+                $attributeType = $this->sqlToPhpType($column['DATA_TYPE']);
                 $classAttributes[] = "    private ".$attributeType." $".$attributeName.";";
             }
             $class .= implode("\n\n", $classAttributes);
