@@ -36,7 +36,108 @@ class GenereClasses
     }
 
     private function initialGeneration() {
-        // TODO : generate AbstractManager.php and connection.php
+        // generate _connect.php.dist if not exist and add _connect.php to .gitignore
+        if(!file_exists('_connect.php.dist')) {
+            $connect = fopen('_connect.php.dist', 'w');
+            $content = 
+                "<?php\n\n
+                define('ENV', getenv('ENV') ? getenv('ENV') : 'dev');\n\n
+                //Model (for connexion data, see unversionned db.php)\n
+                define('DB_USER', getenv('DB_USER') ? getenv('DB_USER') : APP_DB_USER);\n
+                define('DB_PASSWORD', getenv('DB_PASSWORD') ? getenv('DB_PASSWORD') : APP_DB_PASSWORD);\n
+                define('DB_HOST', getenv('DB_HOST') ? getenv('DB_HOST') : APP_DB_HOST);\n
+                define('DB_NAME', getenv('DB_NAME') ? getenv('DB_NAME') : APP_DB_NAME);\n\n
+                ";
+            fwrite($connect, $content);
+            fclose($connect);
+            $gitignore = fopen('.gitignore', 'a');
+            fwrite($gitignore, "\n_connect.php");
+            fclose($gitignore);
+        }
+        // create a folder for the models if not exist
+        if(!file_exists('src/Model')) {
+            mkdir('src/Model');
+        }
+
+        // generate the connection.php file if not exist
+        if(!file_exists('src/Model/connection.php')) {
+            $connection = fopen('src/Model/connection.php', 'w');
+            $content =
+                "<?php\n\n
+                use PDO;\n
+                use PDOException;\n\n
+                class Connection {\n\n
+                    private PDO \$pdoConnection;\n\n
+                    private string \$user;\n\n
+                    private string \$host;\n\n
+                    private string \$password;\n\n
+                    private string \$dbName;\n\n
+                    public function __construct() {\n
+                        \$this->user = DB_USER;\n
+                        \$this->host = DB_HOST;\n
+                        \$this->password = DB_PASSWORD;\n
+                        \$this->dbName = DB_NAME;\n
+                        try {\n
+                            \$this->pdoConnection = new PDO(\n
+                            'mysql:host=' . \$this->host . '; dbname=' . \$this->dbName . '; charset=utf8',\n
+                            \$this->user,\n
+                            \$this->password\n
+                        );\n
+                        \$this->pdoConnection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);\n\n
+                        // show errors in DEV environment\n
+                        if (ENV === 'dev') {\n
+                            \$this->pdoConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n
+                        }\n
+                    } catch (PDOException \$e) {\n
+                        echo '\n
+                            Erreur de connexion à la base de données \n
+                            Message d'erreur : \".\$e->getMessage().\" \n';
+                    }\n\n
+                    public function getPdoConnection(): PDO {\n
+                        return \$this->pdoConnection;\n
+                    }\n
+                }";
+            fwrite($connection, $content);
+            fclose($connection);
+        }
+
+        // generate the AbstractManager.php file if not exist
+        if(!file_exists('src/Model/AbstractManager.php')) {
+            $abstractManager = fopen('src/Model/AbstractManager.php', 'w');
+            $content = 
+                "<?php\n\n
+                use Connection.php;\n
+                use PDO;\n\n
+                abstract class AbstractManager {\n\n
+                    protected PDO \$pdo;\n\n
+                    public const TABLE = '';\n\n
+                    public function __construct() {\n
+                        \$connection = new Connection();\n
+                        \$this->pdo = \$connection->getPdoConnection();\n
+                    }\n\n
+                    public function selectAll(): array {\n
+                        \$query = 'SELECT * FROM ' . static::TABLE;\n
+                        \$statement = \$this->pdo->query(\$query);\n
+                        return \$statement->fetchAll();\n
+                    }\n\n
+                    public function selectOneById(int \$id): array {\n
+                        \$query = 'SELECT * FROM ' . static::TABLE . ' WHERE id = :id';\n
+                        \$statement = \$this->pdo->prepare(\$query);\n
+                        \$statement->bindValue('id', \$id, PDO::PARAM_INT);\n
+                        \$statement->execute();\n
+                        return \$statement->fetch();\n
+                    }\n\n
+                    public function delete(int \$id): void {\n
+                        \$query = 'DELETE FROM ' . static::TABLE . ' WHERE id = :id';\n
+                        \$statement = \$this->pdo->prepare(\$query);\n
+                        \$statement->bindValue('id', \$id, PDO::PARAM_INT);\n
+                        \$statement->execute();\n
+                    }\n\n
+                }\n
+                ";
+            fwrite($abstractManager, $content);
+            fclose($abstractManager);
+        }
     }
 
     private function getPdoConnection(): PDO
@@ -48,6 +149,9 @@ class GenereClasses
         //connection to database
         $pdo = $this->getPdoConnection();
 
+        //create the initial files if not exist (connection.php, AbstractManager.php, _connect.php.dist)
+        $this->initialGeneration();
+        
         //get database schema
         $query = "SELECT * FROM information_schema.columns WHERE table_schema = ?";
         $pdoStatement = $pdo->prepare($query);
