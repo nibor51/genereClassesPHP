@@ -5,8 +5,9 @@ use PDOException;
 
 class GenereClasses
 {
+    private PDO $pdoConnection;
 
-    private $db;
+    private $dbName;
 
     private $host;
 
@@ -14,38 +15,43 @@ class GenereClasses
 
     private $password;
 
-    public function __construct($db, $host, $user, $password) {
-        $this->db = $db;
+    public function __construct($dbName, $host, $user, $password) {
+        $this->dbName = $dbName;
         $this->host = $host;
         $this->user = $user;
         $this->password = $password;
+        try {
+            $this->pdoConnection = new PDO(
+                'mysql:host=' . $this->host . ';dbname=' . $this->dbName . ';charset=utf8',
+                $this->user,
+                $this->password
+            );
+            $this->pdoConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            echo "
+                Erreur de connexion à la base de données \n
+                Message d'erreur : ".$e->getMessage()." \n
+            ";
+        }
     }
 
     private function initialGeneration() {
         // TODO : generate AbstractManager.php and connection.php
     }
 
-    private function connectDatabase() {
-        // TODO : connect to database
+    private function getPdoConnection(): PDO
+    {
+        return $this->pdoConnection;
     }
 
     public function generateClasses() {
         //connection to database
-        try {
-            $pdo = new \PDO("mysql:host=$this->host;dbname=$this->db;charset=utf8", $this->user, $this->password);
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
-            echo "
-                Erreur de connexion à la base de données \n
-                Message d'erreur : ".$e->getMessage()." \n
-            ";
-            exit();
-        }
+        $pdo = $this->getPdoConnection();
 
         //get database schema
         $query = "SELECT * FROM information_schema.columns WHERE table_schema = ?";
         $pdoStatement = $pdo->prepare($query);
-        $pdoStatement->execute([$this->db]);
+        $pdoStatement->execute([$this->dbName]);
         $databaseSchema = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
 
         //group columns by table
