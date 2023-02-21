@@ -153,6 +153,7 @@ class GenereClasses
             $class = "<?php\n\nclass " . $className . "Manager extends AbstractManager\n{\n";
 
             //generate attributes
+            $class .= "    public const TABLE = '" . $table . "';\n\n";
             $classAttributes = [];
             foreach ($columns as $column) {
                 $attributeName = $column['COLUMN_NAME'];
@@ -203,35 +204,9 @@ class GenereClasses
             }
         
             // méthode add
-            $class .= "    public static function add(\$pdo, ";
+            $class .= "    public static function add(";
             $i = 0;
             foreach ($columns as $column) {
-                $class .= "$".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
-            }
-            $class .= ") {\n";
-            $class .= "        \$query = \"INSERT INTO ".$table." VALUES (";
-            $i = 0;
-            foreach ($columns as $column) {
-                $class .= "'$".$column['COLUMN_NAME']."'";
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
-            }
-            $class .= ")\";\n";
-            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-            $class .= "        return \$pdoStatement;\n";
-            $class .= "    }\n\n";
-        
-            // méthode update
-            $class .= "    public static function update(\$pdo, \$id, ";
-            $i = 0;
-            foreach ($columns as $column) {
-                // ne pas duppliquer l'id
                 if ($column['COLUMN_NAME'] == 'id') {
                     continue;
                 }
@@ -242,18 +217,58 @@ class GenereClasses
                 $i++;
             }
             $class .= ") {\n";
-            $class .= "        \$query = \"UPDATE ".$table." SET ";
+            $class .= "        \$statement = \$this->pdo->prepare(\"INSERT INTO \" . self::TABLE . \" VALUES (";
             $i = 0;
             foreach ($columns as $column) {
-                $class .= $column['COLUMN_NAME']." = '$".$column['COLUMN_NAME']."'";
+                $class .= ":$".$column['COLUMN_NAME'];
                 if ($i < count($columns) - 1) {
                     $class .= ", ";
                 }
                 $i++;
             }
-            $class .= " WHERE id = '\$id'\";\n";
-            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-            $class .= "        return \$pdoStatement;\n";
+            $class .= ")\");\n";
+            $i = 0;
+            foreach ($columns as $column) {
+                if ($column['COLUMN_NAME'] == 'id') {
+                    continue;
+                }
+                $class .= "        \$statement->bindValue('".$column['COLUMN_NAME']."', $".$column['COLUMN_NAME'].", PDO::PARAM_STR);\n";
+                $i++;
+            }
+            $class .= "        \$statement->execute();\n";
+            $class .= "return (int)\$this->pdo->lastInsertId();\n";
+            $class .= "    }\n\n";
+        
+            // méthode update
+            $class .= "    public static function update(";
+            $i = 0;
+            foreach ($columns as $column) {
+                $class .= "$".$column['COLUMN_NAME'];
+                if ($i < count($columns) - 1) {
+                    $class .= ", ";
+                }
+                $i++;
+            }
+            $class .= ") {\n";
+            $class .= "        \$statement = \$this->pdo->prepare(\"UPDATE \" . self::TABLE . \" SET ";
+            $i = 0;
+            foreach ($columns as $column) {
+                if ($column['COLUMN_NAME'] == 'id') {
+                    continue;
+                }
+                $class .= $column['COLUMN_NAME']." = :".$column['COLUMN_NAME'];
+                if ($i < count($columns) - 1) {
+                    $class .= ", ";
+                }
+                $i++;
+            }
+            $class .= " WHERE id = :id\");\n";
+            $i = 0;
+            foreach ($columns as $column) {
+                $class .= "        \$statement->bindValue('".$column['COLUMN_NAME']."', $".$column['COLUMN_NAME'].", PDO::PARAM_STR);\n";
+                $i++;
+            }
+            $class .= "        return \$statement->execute();\n";
             $class .= "    }\n\n";
         
             // méthode search
@@ -267,8 +282,8 @@ class GenereClasses
                 }
                 $i++;
             }
-            $class .= "        \$pdoStatement = \$pdo->query(\$query);\n";
-            $class .= "        \$results = \$pdoStatement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
+            $class .= "        \$statement = \$pdo->query(\$query);\n";
+            $class .= "        \$results = \$statement->fetchAll(PDO::FETCH_CLASS, '".ucfirst($table)."');\n";
             $class .= "        return \$results;\n";
             $class .= "    }\n\n";
         
