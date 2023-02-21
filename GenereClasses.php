@@ -128,14 +128,9 @@ class GenereClasses
         }
     }
 
-    private function getPdoConnection(): PDO
-    {
-        return $this->pdoConnection;
-    }
-
     public function generateClasses() {
         //connection to database
-        $pdo = $this->getPdoConnection();
+        $pdo = $this->pdoConnection;
 
         //create the initial files if not exist (connection.php, AbstractManager.php, _connect.php.dist)
         $this->initialGeneration();
