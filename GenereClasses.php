@@ -166,23 +166,6 @@ class GenereClasses
 
             //define methods
 
-            //constructor
-            $class .= "\n\n    public function __construct(";
-            $i = 0;
-            foreach ($columns as $column) {
-                $class .= "$".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
-            }
-            $class .= ") {\n";
-
-            foreach ($columns as $column) {
-                $class .= "        \$this-> ".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n";
-            }
-            $class .= "    }\n\n";
-
             foreach ($columns as $column) {
                 //getters
                 //condition to add return type
