@@ -149,8 +149,10 @@ class GenereClasses
 
         //generate classes
         foreach ($tables as $table => $columns) {
-            $className = ucfirst($table);
-            $class = "<?php\n\nclass " . $className . "Manager extends AbstractManager\n{\n";
+            $className = ucfirst($table) . "Manager";
+            $class = "<?php\n\n";
+            $class = "require_once 'AbstractManager.php';\n\n";
+            $class .= "class " . $className . " extends AbstractManager\n{\n";
 
             //generate attributes
             $class .= "    public const TABLE = '" . $table . "';\n\n";
@@ -208,6 +210,7 @@ class GenereClasses
             $i = 0;
             foreach ($columns as $column) {
                 if ($column['COLUMN_NAME'] == 'id') {
+                    $i++;
                     continue;
                 }
                 $class .= "$".$column['COLUMN_NAME'];
