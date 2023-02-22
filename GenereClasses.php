@@ -83,7 +83,7 @@ class GenereClasses
             $content .= "           } catch (PDOException \$e) {\n";
             $content .= "               echo \"\n";
             $content .= "                   Erreur de connexion à la base de données \n";
-            $content .= "                   Message d'erreur : '.\$e->getMessage().'\n";
+            $content .= "                   Message d'erreur : \".\$e->getMessage().\"\n";
             $content .= "               \";\n";
             $content .= "           };\n\n";
             $content .= "        }\n\n";
@@ -220,7 +220,7 @@ class GenereClasses
             $class .= "        \$statement = \$this->pdo->prepare(\"INSERT INTO \" . self::TABLE . \" VALUES (";
             $i = 0;
             foreach ($columns as $column) {
-                $class .= ":$".$column['COLUMN_NAME'];
+                $class .= ":".$column['COLUMN_NAME'];
                 if ($i < count($columns) - 1) {
                     $class .= ", ";
                 }
@@ -273,7 +273,7 @@ class GenereClasses
         
             // méthode search
             $class .= "    public static function search(\$pdo, \$search) {\n";
-            $class .= "        \$query = \"SELECT * FROM ".$table." WHERE \";\n";
+            $class .= "        \$query = \$this->pdo->prepare(\"SELECT * FROM \" . self::TABLE . \" WHERE \");\n";
             $i = 0;
             foreach ($columns as $column) {
                 $class .= "        \$query .= \"".$column['COLUMN_NAME']." LIKE '%\$search%'\";\n";
