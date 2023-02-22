@@ -27,8 +27,8 @@ Ce script est sous licence MIT. Vous pouvez donc l'utiliser comme bon vous sembl
 
 ## TODO
 
-- [ ] fix les types de données d'entrée et de sortie des méthodes
-- [ ] optimiser la génération des méthodes de la classe (trop de code répété)
+- [x] fix les types de données d'entrée et de sortie des méthodes
+- [X] optimiser la génération des méthodes de la classe (trop de code répété)
 - [ ] ajouter des commentaires dans le code source
 - [ ] ajouter des commentaires dans les classes générées
 - [ ] ajouter des tests automatiques

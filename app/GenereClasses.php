@@ -33,172 +33,133 @@ class GenereClasses
     }
 
     public function generateClasses() {
-        //connection to database
+        // Connection to database
         $pdo = $this->pdoConnection;
 
-        //create the initial files if not exist (connection.php, AbstractManager.php, _connect.php.dist)
+        // Create the initial files if not exist (connection.php, AbstractManager.php, _connect.php.dist)
         $this->initialGeneration();
         
-        //get database schema
+        // Get database schema
         $query = "SELECT * FROM information_schema.columns WHERE table_schema = ?";
         $pdoStatement = $pdo->prepare($query);
         $pdoStatement->execute([$this->dbName]);
         $databaseSchema = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
 
-        //group columns by table
+        // Group columns by table
         $tables = [];
         foreach ($databaseSchema['def'] as $table) {
             $tables[$table['TABLE_NAME']][] = $table;
         }
 
-        //generate classes
+        // Generate classes
         foreach ($tables as $table => $columns) {
             $className = ucfirst($table) . "Manager";
             $class = "<?php\n\n";
             $class .= "require_once 'AbstractManager.php';\n\n";
             $class .= "class " . $className . " extends AbstractManager\n{\n";
+        
+            // Generate attributes, getters and setters
+            $classAttributes = "";
+            $gettersAndSetters = "";
 
-            //generate attributes
-            $class .= "    public const TABLE = '" . $table . "';\n\n";
-            $classAttributes = [];
             foreach ($columns as $column) {
                 $attributeName = $column['COLUMN_NAME'];
                 $attributeType = $this->sqlToPhpType($column['DATA_TYPE']);
-                $classAttributes[] = "    private ".$attributeType." $".$attributeName.";";
-            }
-            $class .= implode("\n\n", $classAttributes);
-            $class .= "\n\n";
-            
-            //define methods
 
-            foreach ($columns as $column) {
-                //getters
-                //condition to add return type
-                if (strpos($column['DATA_TYPE'], 'int') !== false) {
-                    $class .= "    public function get".$column['COLUMN_NAME']."(): ?int {\n";
-                } else {
-                    $class .= "    public function get".$column['COLUMN_NAME']."(): ?string\n    {\n";
-                }
-                $class .= "        return \$this->".$column['COLUMN_NAME'].";\n";
-                $class .= "    }\n\n";
+                // Generate attributes
+                $classAttributes .= sprintf("    private %s $%s;\n\n", $attributeType, $attributeName);
 
-                //setters
-                //condition to add parameter type
-                if (strpos($column['DATA_TYPE'], 'int') !== false) {
-                    $class .= "    public function set".$column['COLUMN_NAME']."(int $".$column['COLUMN_NAME'].") {\n";
-                } else {
-                    $class .= "    public function set".$column['COLUMN_NAME']."(string $".$column['COLUMN_NAME'].") {\n";
-                }
-                $class .= "        \$this->".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n";
-                $class .= "    }\n\n";
-            }
-        
-            // méthode add
-            $class .= "    public function add(";
-            $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    $i++;
+                // Generate getters
+                $gettersAndSetters .= sprintf("    public function get%s(): ?%s {\n", ucfirst($attributeName), $attributeType);
+                $gettersAndSetters .= sprintf("        return \$this->%s;\n", $attributeName);
+                $gettersAndSetters .= "    }\n\n";
+
+                // Generate setters without id
+                if ($attributeName == 'id') {
                     continue;
                 }
-                $class .= "$".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
+                $gettersAndSetters .= sprintf("    public function set%s(%s $%s) {\n", ucfirst($attributeName), $attributeType, $attributeName);
+                $gettersAndSetters .= sprintf("        \$this->%s = $%s;\n", $attributeName, $attributeName);
+                $gettersAndSetters .= "    }\n\n";
             }
+
+            // Combine attributes, getters and setters
+            $class .= "    public const TABLE = '$table';\n\n";
+            $class .= $classAttributes;
+            $class .= $gettersAndSetters;
+
+            // Generate add method
+            $class .= "    public function add(";
+            $parameters = [];
+            foreach ($columns as $column) {
+                if ($column['COLUMN_NAME'] == 'id') {
+                    continue;
+                }
+                $class .= $this->sqlToPhpType($column['DATA_TYPE']) . " $".$column['COLUMN_NAME'].", ";
+                $parameters[] = $column['COLUMN_NAME'];
+            }
+            $class = rtrim($class, ", ");
             $class .= ") {\n";
             $class .= "        \$statement = \$this->pdo->prepare(\"INSERT INTO \" . self::TABLE . \"(";
-            $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    $i++;
-                    continue;
-                }
-                $class .= $column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
-            }
+            $class .= implode(", ", $parameters);
             $class .= ") VALUES (";
-            $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    $i++;
-                    continue;
-                }
-                $class .= ":".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
-            }
+            $class .= ":".implode(", :", $parameters);
             $class .= ")\");\n";
-            $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    continue;
-                }
-                $class .= "        \$statement->bindValue('".$column['COLUMN_NAME']."', $".$column['COLUMN_NAME'].", PDO::PARAM_STR);\n";
-                $i++;
+            foreach ($parameters as $parameter) {
+                $class .= "        \$statement->bindValue('".$parameter."', $".$parameter.", PDO::PARAM_STR);\n";
             }
             $class .= "        \$statement->execute();\n";
             $class .= "        return (int)\$this->pdo->lastInsertId();\n";
             $class .= "    }\n\n";
-        
-            // méthode update
-            $class .= "    public function update(";
-            $i = 0;
+
+            // Generate update method
+            $class .= "    public function update(int \$id, ";
+            $parameters = [];
             foreach ($columns as $column) {
-                $class .= "$".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
+                if ($column['COLUMN_NAME'] == 'id') {
+                    continue;
                 }
-                $i++;
+                $class .= $this->sqlToPhpType($column['DATA_TYPE']) . " $".$column['COLUMN_NAME'].", ";
+                $parameters[] = $column['COLUMN_NAME'];
             }
+            $class = rtrim($class, ", ");
             $class .= ") {\n";
             $class .= "        \$statement = \$this->pdo->prepare(\"UPDATE \" . self::TABLE . \" SET ";
             $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    $i++;
-                    continue;
-                }
-                $class .= $column['COLUMN_NAME']." = :".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
+            foreach ($parameters as $parameter) {
+                $class .= $parameter." = :".$parameter;
+                if ($i < count($parameters) - 1) {
                     $class .= ", ";
                 }
                 $i++;
             }
             $class .= " WHERE id = :id\");\n";
-            $i = 0;
-            foreach ($columns as $column) {
-                $class .= "        \$statement->bindValue('".$column['COLUMN_NAME']."', $".$column['COLUMN_NAME'].", PDO::PARAM_STR);\n";
-                $i++;
+            foreach ($parameters as $parameter) {
+                $class .= "        \$statement->bindValue('".$parameter."', $".$parameter.", PDO::PARAM_STR);\n";
             }
+            $class .= "        \$statement->bindValue('id', \$id, PDO::PARAM_INT);\n";
             $class .= "        return \$statement->execute();\n";
             $class .= "    }\n\n";
         
-            // méthode search
-            $class .= "    public function search(\$search) {\n";
-            $class .= "        \$query = \"SELECT * FROM \" . self::TABLE . \" WHERE \";\n";
-            $i = 0;
+            // Generate search method
+            $class .= "    public function search(mixed \$search): array|false {\n";
+            $class .= "        \$statement = \$this->pdo->prepare(\"SELECT * FROM \" . self::TABLE . \" WHERE ";
+            $conditions = [];
             foreach ($columns as $column) {
-                $class .= "        \$query .= \"".$column['COLUMN_NAME']." LIKE '%\$search%'\";\n";
-                if ($i < count($columns) - 1) {
-                    $class .= "        \$query .= \" OR \";\n";
+                if ($column['COLUMN_NAME'] == 'id') {
+                    continue;
                 }
-                $i++;
+                $conditions[] = $column['COLUMN_NAME'] . " LIKE :search";
             }
-            $class .= "        \$statement = \$this->pdo->query(\$query);\n";
-            $class .= "        \$results = \$statement->fetchAll();\n";
-            $class .= "        return \$results;\n";
+            $class .= implode(" OR ", $conditions) . "\");\n";
+            $class .= "        \$statement->bindValue(':search', '%' . \$search . '%', PDO::PARAM_STR);\n";
+            $class .= "        \$statement->execute();\n";
+            $class .= "        return \$statement->fetchAll();\n";
             $class .= "    }\n\n";
         
             $class .= "}";
 
-            //create file
+            // Create file
             $file = fopen('src/Model/'.$className.'.php', 'w+');
             fwrite($file, $class);
             fclose($file);
@@ -206,11 +167,11 @@ class GenereClasses
     }
 
     private function initialGeneration() {
-        // create a folder for config files
+        // Create a folder for config files
         if(!file_exists('config')) {
             mkdir('config');
         }
-        // generate config.php
+        // Generate config.php
         if(!file_exists('config/config.php')) {
             $config = fopen('config/config.php', 'w');
             $content = "<?php\n\n";
@@ -225,7 +186,7 @@ class GenereClasses
             fclose($config);
         }
 
-        // generate db.php.dist if not exist and add db.php to .gitignore
+        // Generate db.php.dist if not exist and add db.php to .gitignore
         if(!file_exists('config/db.php.dist')) {
             $connect = fopen('config/db.php.dist', 'w');
             $content = "<?php\n\n";
@@ -239,12 +200,12 @@ class GenereClasses
             fwrite($gitignore, "\ndb.php");
             fclose($gitignore);
         }
-        // create a folder for the models if not exist
+        // Create a folder for the models if not exist
         if(!file_exists('src/Model')) {
             mkdir('src/Model', 0777, true);
         }
 
-        // generate the connection.php file if not exist
+        // Generate the connection.php file if not exist
         if(!file_exists('src/Model/connection.php')) {
             $connection = fopen('src/Model/connection.php', 'w');
             $content = "<?php\n\n";
@@ -285,7 +246,7 @@ class GenereClasses
             fclose($connection);
         }
 
-        // generate the AbstractManager.php file if not exist
+        // Generate the AbstractManager.php file if not exist
         if(!file_exists('src/Model/AbstractManager.php')) {
             $abstractManager = fopen('src/Model/AbstractManager.php', 'w');
             $content = "<?php\n\n";
@@ -320,33 +281,45 @@ class GenereClasses
         }
     }
 
-    private function sqlToPhpType(string $type) : string
+    private function sqlToPhpType(string $type) : ?string
     {
         $typeMap = array(
-            'TINYINT' => 'int',
-            'SMALLINT' => 'int',
-            'MEDIUMINT' => 'int',
-            'INT' => 'int',
-            'BIGINT' => 'int',
-            'FLOAT' => 'float',
-            'DOUBLE' => 'float',
-            'DECIMAL' => 'float',
-            'DATE' => 'string',
-            'TIME' => 'string',
-            'DATETIME' => 'string',
-            'TIMESTAMP' => 'int',
-            'YEAR' => 'int',
-            'CHAR' => 'string',
-            'VARCHAR' => 'string',
-            'TEXT' => 'string',
-            'BLOB' => 'string',
-            'ENUM' => 'string',
-            'SET' => 'string'
-          );
+            'tinyint' => 'int',
+            'smallint' => 'int',
+            'mediumint' => 'int',
+            'int' => 'int',
+            'bigint' => 'int',
+            'float' => 'float',
+            'double' => 'float',
+            'decimal' => 'float',
+            'date' => 'string',
+            'time' => 'string',
+            'datetime' => 'string',
+            'timestamp' => 'int',
+            'year' => 'int',
+            'char' => 'string',
+            'varchar' => 'string',
+            'text' => 'string',
+            'blob' => 'string',
+            'enum' => 'string',
+            'set' => 'string',
+            'binary' => 'string',
+            'bool' => 'boolean',
+            'json' => 'string',
+            'serial' => 'int',
+            'numeric' => 'string',
+            'real' => 'float',
+            'nchar' => 'string',
+            'nvarchar' => 'string',
+            'ntext' => 'string',
+            'image' => 'string',
+            'xml' => 'string',
+            'uuid' => 'string'
+        );        
         $pos = strpos($type, '(');
         if ($pos !== false) {
           $type = substr($type, 0, $pos);
         }
-        return isset($typeMap[$type]) ? $typeMap[$type] : 'string';	
+        return isset($typeMap[$type]) ? $typeMap[$type] : null;	
     }
 }
