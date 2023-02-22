@@ -1,6 +1,6 @@
 <?php
 
-// Example of use, replace by your own class name
+// Example of use, replace all "TechManager" by your own class name
 // don't forget to create config/db.php file with your own credentials
 
 require_once 'src/Model/TechManager.php';
