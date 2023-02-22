@@ -33,25 +33,25 @@ class GenereClasses
     }
 
     public function generateClasses() {
-        //connection to database
+        // Connection to database
         $pdo = $this->pdoConnection;
 
-        //create the initial files if not exist (connection.php, AbstractManager.php, _connect.php.dist)
+        // Create the initial files if not exist (connection.php, AbstractManager.php, _connect.php.dist)
         $this->initialGeneration();
         
-        //get database schema
+        // Get database schema
         $query = "SELECT * FROM information_schema.columns WHERE table_schema = ?";
         $pdoStatement = $pdo->prepare($query);
         $pdoStatement->execute([$this->dbName]);
         $databaseSchema = $pdoStatement->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
 
-        //group columns by table
+        // Group columns by table
         $tables = [];
         foreach ($databaseSchema['def'] as $table) {
             $tables[$table['TABLE_NAME']][] = $table;
         }
 
-        //generate classes
+        // Generate classes
         foreach ($tables as $table => $columns) {
             $className = ucfirst($table) . "Manager";
             $class = "<?php\n\n";
@@ -88,61 +88,31 @@ class GenereClasses
             $class .= $classAttributes;
             $class .= $gettersAndSetters;
 
-            // méthode add
+            // Generate add method
             $class .= "    public function add(";
-            $i = 0;
+            $parameters = [];
             foreach ($columns as $column) {
                 if ($column['COLUMN_NAME'] == 'id') {
-                    $i++;
                     continue;
                 }
-                $class .= "$".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
+                $class .= $this->sqlToPhpType($column['DATA_TYPE']) . " $".$column['COLUMN_NAME'].", ";
+                $parameters[] = $column['COLUMN_NAME'];
             }
+            $class = rtrim($class, ", ");
             $class .= ") {\n";
             $class .= "        \$statement = \$this->pdo->prepare(\"INSERT INTO \" . self::TABLE . \"(";
-            $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    $i++;
-                    continue;
-                }
-                $class .= $column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
-            }
+            $class .= implode(", ", $parameters);
             $class .= ") VALUES (";
-            $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    $i++;
-                    continue;
-                }
-                $class .= ":".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
-                }
-                $i++;
-            }
+            $class .= ":".implode(", :", $parameters);
             $class .= ")\");\n";
-            $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    continue;
-                }
-                $class .= "        \$statement->bindValue('".$column['COLUMN_NAME']."', $".$column['COLUMN_NAME'].", PDO::PARAM_STR);\n";
-                $i++;
+            foreach ($parameters as $parameter) {
+                $class .= "        \$statement->bindValue('".$parameter."', $".$parameter.", PDO::PARAM_STR);\n";
             }
             $class .= "        \$statement->execute();\n";
             $class .= "        return (int)\$this->pdo->lastInsertId();\n";
             $class .= "    }\n\n";
-        
-            // méthode update
+
+            // Generate update method
             $class .= "    public function update(";
             $i = 0;
             foreach ($columns as $column) {
@@ -175,7 +145,7 @@ class GenereClasses
             $class .= "        return \$statement->execute();\n";
             $class .= "    }\n\n";
         
-            // méthode search
+            // Generate search method
             $class .= "    public function search(\$search) {\n";
             $class .= "        \$query = \"SELECT * FROM \" . self::TABLE . \" WHERE \";\n";
             $i = 0;
@@ -193,7 +163,7 @@ class GenereClasses
         
             $class .= "}";
 
-            //create file
+            // Create file
             $file = fopen('src/Model/'.$className.'.php', 'w+');
             fwrite($file, $class);
             fclose($file);
@@ -201,11 +171,11 @@ class GenereClasses
     }
 
     private function initialGeneration() {
-        // create a folder for config files
+        // Create a folder for config files
         if(!file_exists('config')) {
             mkdir('config');
         }
-        // generate config.php
+        // Generate config.php
         if(!file_exists('config/config.php')) {
             $config = fopen('config/config.php', 'w');
             $content = "<?php\n\n";
@@ -220,7 +190,7 @@ class GenereClasses
             fclose($config);
         }
 
-        // generate db.php.dist if not exist and add db.php to .gitignore
+        // Generate db.php.dist if not exist and add db.php to .gitignore
         if(!file_exists('config/db.php.dist')) {
             $connect = fopen('config/db.php.dist', 'w');
             $content = "<?php\n\n";
@@ -234,12 +204,12 @@ class GenereClasses
             fwrite($gitignore, "\ndb.php");
             fclose($gitignore);
         }
-        // create a folder for the models if not exist
+        // Create a folder for the models if not exist
         if(!file_exists('src/Model')) {
             mkdir('src/Model', 0777, true);
         }
 
-        // generate the connection.php file if not exist
+        // Generate the connection.php file if not exist
         if(!file_exists('src/Model/connection.php')) {
             $connection = fopen('src/Model/connection.php', 'w');
             $content = "<?php\n\n";
@@ -280,7 +250,7 @@ class GenereClasses
             fclose($connection);
         }
 
-        // generate the AbstractManager.php file if not exist
+        // Generate the AbstractManager.php file if not exist
         if(!file_exists('src/Model/AbstractManager.php')) {
             $abstractManager = fopen('src/Model/AbstractManager.php', 'w');
             $content = "<?php\n\n";
