@@ -57,42 +57,37 @@ class GenereClasses
             $class = "<?php\n\n";
             $class .= "require_once 'AbstractManager.php';\n\n";
             $class .= "class " . $className . " extends AbstractManager\n{\n";
+        
+            // Generate attributes, getters and setters
+            $classAttributes = "";
+            $gettersAndSetters = "";
 
-            //generate attributes
-            $class .= "    public const TABLE = '" . $table . "';\n\n";
-            $classAttributes = [];
             foreach ($columns as $column) {
                 $attributeName = $column['COLUMN_NAME'];
                 $attributeType = $this->sqlToPhpType($column['DATA_TYPE']);
-                $classAttributes[] = "    private ".$attributeType." $".$attributeName.";";
-            }
-            $class .= implode("\n\n", $classAttributes);
-            $class .= "\n\n";
-            
-            //define methods
 
-            foreach ($columns as $column) {
-                //getters
-                //condition to add return type
-                if (strpos($column['DATA_TYPE'], 'int') !== false) {
-                    $class .= "    public function get".$column['COLUMN_NAME']."(): ?int {\n";
-                } else {
-                    $class .= "    public function get".$column['COLUMN_NAME']."(): ?string\n    {\n";
-                }
-                $class .= "        return \$this->".$column['COLUMN_NAME'].";\n";
-                $class .= "    }\n\n";
+                // Generate attributes
+                $classAttributes .= sprintf("    private %s $%s;\n\n", $attributeType, $attributeName);
 
-                //setters
-                //condition to add parameter type
-                if (strpos($column['DATA_TYPE'], 'int') !== false) {
-                    $class .= "    public function set".$column['COLUMN_NAME']."(int $".$column['COLUMN_NAME'].") {\n";
-                } else {
-                    $class .= "    public function set".$column['COLUMN_NAME']."(string $".$column['COLUMN_NAME'].") {\n";
+                // Generate getters
+                $gettersAndSetters .= sprintf("    public function get%s(): ?%s {\n", ucfirst($attributeName), $attributeType);
+                $gettersAndSetters .= sprintf("        return \$this->%s;\n", $attributeName);
+                $gettersAndSetters .= "    }\n\n";
+
+                // Generate setters without id
+                if ($attributeName == 'id') {
+                    continue;
                 }
-                $class .= "        \$this->".$column['COLUMN_NAME']." = $".$column['COLUMN_NAME'].";\n";
-                $class .= "    }\n\n";
+                $gettersAndSetters .= sprintf("    public function set%s(%s $%s) {\n", ucfirst($attributeName), $attributeType, $attributeName);
+                $gettersAndSetters .= sprintf("        \$this->%s = $%s;\n", $attributeName, $attributeName);
+                $gettersAndSetters .= "    }\n\n";
             }
-        
+
+            // Combine attributes, getters and setters
+            $class .= "    public const TABLE = '$table';\n\n";
+            $class .= $classAttributes;
+            $class .= $gettersAndSetters;
+
             // méthode add
             $class .= "    public function add(";
             $i = 0;
