@@ -113,35 +113,31 @@ class GenereClasses
             $class .= "    }\n\n";
 
             // Generate update method
-            $class .= "    public function update(";
-            $i = 0;
+            $class .= "    public function update(int \$id, ";
+            $parameters = [];
             foreach ($columns as $column) {
-                $class .= "$".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
-                    $class .= ", ";
+                if ($column['COLUMN_NAME'] == 'id') {
+                    continue;
                 }
-                $i++;
+                $class .= $this->sqlToPhpType($column['DATA_TYPE']) . " $".$column['COLUMN_NAME'].", ";
+                $parameters[] = $column['COLUMN_NAME'];
             }
+            $class = rtrim($class, ", ");
             $class .= ") {\n";
             $class .= "        \$statement = \$this->pdo->prepare(\"UPDATE \" . self::TABLE . \" SET ";
             $i = 0;
-            foreach ($columns as $column) {
-                if ($column['COLUMN_NAME'] == 'id') {
-                    $i++;
-                    continue;
-                }
-                $class .= $column['COLUMN_NAME']." = :".$column['COLUMN_NAME'];
-                if ($i < count($columns) - 1) {
+            foreach ($parameters as $parameter) {
+                $class .= $parameter." = :".$parameter;
+                if ($i < count($parameters) - 1) {
                     $class .= ", ";
                 }
                 $i++;
             }
             $class .= " WHERE id = :id\");\n";
-            $i = 0;
-            foreach ($columns as $column) {
-                $class .= "        \$statement->bindValue('".$column['COLUMN_NAME']."', $".$column['COLUMN_NAME'].", PDO::PARAM_STR);\n";
-                $i++;
+            foreach ($parameters as $parameter) {
+                $class .= "        \$statement->bindValue('".$parameter."', $".$parameter.", PDO::PARAM_STR);\n";
             }
+            $class .= "        \$statement->bindValue('id', \$id, PDO::PARAM_INT);\n";
             $class .= "        return \$statement->execute();\n";
             $class .= "    }\n\n";
         
