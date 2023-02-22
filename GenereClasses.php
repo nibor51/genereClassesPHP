@@ -204,7 +204,7 @@ class GenereClasses
             }
         
             // méthode add
-            $class .= "    public static function add(";
+            $class .= "    public function add(";
             $i = 0;
             foreach ($columns as $column) {
                 if ($column['COLUMN_NAME'] == 'id') {
@@ -240,7 +240,7 @@ class GenereClasses
             $class .= "    }\n\n";
         
             // méthode update
-            $class .= "    public static function update(";
+            $class .= "    public function update(";
             $i = 0;
             foreach ($columns as $column) {
                 $class .= "$".$column['COLUMN_NAME'];
@@ -272,7 +272,7 @@ class GenereClasses
             $class .= "    }\n\n";
         
             // méthode search
-            $class .= "    public static function search(\$pdo, \$search) {\n";
+            $class .= "    public function search(\$pdo, \$search) {\n";
             $class .= "        \$query = \$this->pdo->prepare(\"SELECT * FROM \" . self::TABLE . \" WHERE \");\n";
             $i = 0;
             foreach ($columns as $column) {
