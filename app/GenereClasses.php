@@ -320,33 +320,45 @@ class GenereClasses
         }
     }
 
-    private function sqlToPhpType(string $type) : string
+    private function sqlToPhpType(string $type) : ?string
     {
         $typeMap = array(
-            'TINYINT' => 'int',
-            'SMALLINT' => 'int',
-            'MEDIUMINT' => 'int',
-            'INT' => 'int',
-            'BIGINT' => 'int',
-            'FLOAT' => 'float',
-            'DOUBLE' => 'float',
-            'DECIMAL' => 'float',
-            'DATE' => 'string',
-            'TIME' => 'string',
-            'DATETIME' => 'string',
-            'TIMESTAMP' => 'int',
-            'YEAR' => 'int',
-            'CHAR' => 'string',
-            'VARCHAR' => 'string',
-            'TEXT' => 'string',
-            'BLOB' => 'string',
-            'ENUM' => 'string',
-            'SET' => 'string'
-          );
+            'tinyint' => 'int',
+            'smallint' => 'int',
+            'mediumint' => 'int',
+            'int' => 'int',
+            'bigint' => 'int',
+            'float' => 'float',
+            'double' => 'float',
+            'decimal' => 'float',
+            'date' => 'string',
+            'time' => 'string',
+            'datetime' => 'string',
+            'timestamp' => 'int',
+            'year' => 'int',
+            'char' => 'string',
+            'varchar' => 'string',
+            'text' => 'string',
+            'blob' => 'string',
+            'enum' => 'string',
+            'set' => 'string',
+            'binary' => 'string',
+            'bool' => 'boolean',
+            'json' => 'string',
+            'serial' => 'int',
+            'numeric' => 'string',
+            'real' => 'float',
+            'nchar' => 'string',
+            'nvarchar' => 'string',
+            'ntext' => 'string',
+            'image' => 'string',
+            'xml' => 'string',
+            'uuid' => 'string'
+        );        
         $pos = strpos($type, '(');
         if ($pos !== false) {
           $type = substr($type, 0, $pos);
         }
-        return isset($typeMap[$type]) ? $typeMap[$type] : 'string';	
+        return isset($typeMap[$type]) ? $typeMap[$type] : null;	
     }
 }
