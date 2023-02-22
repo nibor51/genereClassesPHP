@@ -142,19 +142,19 @@ class GenereClasses
             $class .= "    }\n\n";
         
             // Generate search method
-            $class .= "    public function search(\$search) {\n";
-            $class .= "        \$query = \"SELECT * FROM \" . self::TABLE . \" WHERE \";\n";
-            $i = 0;
+            $class .= "    public function search(mixed \$search): array|false {\n";
+            $class .= "        \$statement = \$this->pdo->prepare(\"SELECT * FROM \" . self::TABLE . \" WHERE ";
+            $conditions = [];
             foreach ($columns as $column) {
-                $class .= "        \$query .= \"".$column['COLUMN_NAME']." LIKE '%\$search%'\";\n";
-                if ($i < count($columns) - 1) {
-                    $class .= "        \$query .= \" OR \";\n";
+                if ($column['COLUMN_NAME'] == 'id') {
+                    continue;
                 }
-                $i++;
+                $conditions[] = $column['COLUMN_NAME'] . " LIKE :search";
             }
-            $class .= "        \$statement = \$this->pdo->query(\$query);\n";
-            $class .= "        \$results = \$statement->fetchAll();\n";
-            $class .= "        return \$results;\n";
+            $class .= implode(" OR ", $conditions) . "\");\n";
+            $class .= "        \$statement->bindValue(':search', '%' . \$search . '%', PDO::PARAM_STR);\n";
+            $class .= "        \$statement->execute();\n";
+            $class .= "        return \$statement->fetchAll();\n";
             $class .= "    }\n\n";
         
             $class .= "}";
