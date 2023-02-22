@@ -9,13 +9,13 @@ Pour utiliser ce générateur de classes, vous devez :
 
     1. Copier les fichiers dans le répertoire de votre projet
     2. Créer et configurer le fichier _connec.php en fonction de votre base de données
-    3. Exécuter le fichier index.php via la console avec la commande `php index.php`
+    3. Exécuter le fichier index.php via la console avec la commande `php app/index.php`
 
 ## Utilisation
 
 Une fois le script exécuté, il va générer un fichier par table de la base de données, dans le répertoire `src/Model/`.
 Vous pouvez ensuite inclure ces fichiers dans vos scripts PHP, et utiliser les classes générées.
-Pour tester les classes générées, vous pouvez utiliser le fichier `test.php` qui se trouve à la racine du projet.
+Pour tester les classes générées, vous pouvez utiliser le fichier `app/test.php` qui se trouve à la racine du projet.
 
  ## Avertissement
 
